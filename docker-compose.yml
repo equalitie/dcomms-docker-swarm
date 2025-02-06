@@ -17,6 +17,7 @@ volumes:
   synapse_data:
     external: true
   mailadm_db:
+  element_data:
   synapse_db:
   mastodon_public:
   mastodon_redis:
@@ -49,7 +50,10 @@ services:
       - type: bind
         source: /var/www
         target: /www
-      - mastodon_public:/srv/mastodon/public:ro
+#      - mastodon_public:/srv/mastodon/public:ro
+      - type: volume
+        source: mastodon_public
+        target: /srv/mastodon/public
     networks:
       - caddy
     environment:
@@ -70,7 +74,7 @@ services:
           memory: 512M
   # synapse is a matrix homeserver running as a service
   synapse:
-    image: matrixdotorg/synapse:v1.116.0
+    image: matrixdotorg/synapse:v1.123.0
     entrypoint:
     - sh
     - -c
@@ -79,6 +83,8 @@ services:
       - synapse_data:/data
     networks:
       - caddy
+    healthcheck:
+      test: ["NONE"]
     environment:
       SYNAPSE_CONFIG_DIR: "/data"
       SYNAPSE_DATA_DIR: "/data"
@@ -139,17 +145,19 @@ services:
           memory: 512M
   # element is a matrix web GUI running as a service
   element:
-    image: vectorim/element-web:v1.11.79
+    image: vectorim/element-web:v1.11.91
     networks:
       - caddy
+    environment:
+      - 'ELEMENT_WEB_PORT=8001'
     depends_on:
       - caddy
       - synapse
+    volumes:
+      - element_data:/app
     configs:
       - source: element-json-config
         target: /app/config.json
-      - source: element-nginx-config
-        target: /etc/nginx/conf.d/default.conf
     deploy:
       mode: replicated
       replicas: 1
@@ -271,10 +279,16 @@ services:
       test: ['CMD', 'pg_isready', '-U', 'postgres']
     environment:
       - 'POSTGRES_HOST_AUTH_METHOD=trust'
+      - 'POSTGRES_USER=postgres'
     volumes:
       - mastodon_db:/var/lib/postgresql/data
     networks:
       - mast-int
+    ports:
+      - target: 5432
+        published: 5433
+        protocol: tcp
+        mode: host
     deploy:
       mode: replicated
       replicas: 1
@@ -309,14 +323,13 @@ services:
 
   mastodon-web:
     restart: always
-    image: tootsuite/mastodon:v4.3.0
+    image: tootsuite/mastodon:v4.3.3
     healthcheck:
       test: ['CMD-SHELL', 'wget -q --spider --proxy=off localhost:3000/health || exit 1']
     entrypoint:
       - bash
       - -c
-      #- "bundle exec rake db:prepare && cd /opt/mastodon && /usr/bin/tini -- bundle exec rails server"
-      - "[[ -e /mastodon/public/db.lock ]] && touch /mastodon/public/db.lock || touch /mastodon/public/db.lock && bundle exec rake db:prepare; /usr/bin/tini -- bundle exec rails server"
+      - "/usr/bin/tini -- bundle exec rails server"
     env_file: conf/mastodon/${DWEB_DOMAIN}.env.production
     command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
     ports:
@@ -327,10 +340,11 @@ services:
     depends_on:
       - mastodon-pg
       - mastodon-redis
-      - mastodon-streaming
     volumes:
       # https://www.digitalocean.com/community/tutorials/how-to-share-data-between-docker-containers
-      - mastodon_public:/mastodon/public/ # map static files in volume for caddy
+      - type: volume
+        source: mastodon_public
+        target: /mastodon/public/system
     networks:
       - mast-int
     deploy:
@@ -346,7 +360,7 @@ services:
 
   mastodon-streaming:
     restart: always
-    image: tootsuite/mastodon:v4.3.0
+    image: tootsuite/mastodon-streaming:v4.3.3
     healthcheck:
       test: wget -q --spider --proxy=off localhost:4000/api/v1/streaming/health || exit 1
         ]
@@ -377,7 +391,7 @@ services:
 
   mastodon-sidekiq:
     restart: always
-    image: tootsuite/mastodon:v4.3.0
+    image: tootsuite/mastodon:v4.3.3
     entrypoint:
       - sh
       - -c
@@ -390,7 +404,9 @@ services:
       - mastodon-pg
       - mastodon-redis
     volumes:
-      - mastodon_public:/mastodon/public/
+      - type: volume
+        source: mastodon_public
+        target: /mastodon/public/system
     networks:
       - mast-int
     deploy:

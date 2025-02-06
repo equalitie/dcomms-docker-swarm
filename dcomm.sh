@@ -55,7 +55,7 @@ matrix_config () {
     printf "rc_registration:\n  per_second: 0.1 \n  burst_count: 2\n" >> ./conf/synapse/$DWEB_DOMAIN.homeserver.yaml
     printf "presence:\n  enabled: false\n" >> ./conf/synapse/$DWEB_DOMAIN.homeserver.yaml
     printf "database:\n  name: psycopg2\n  txn_limit: 10000\n  args:\n" >> ./conf/synapse/$DWEB_DOMAIN.homeserver.yaml
-    printf "    user: synapse\n    password: null\n    database: synapse\n    host: localhost\n" >> ./conf/synapse/$DWEB_DOMAIN.homeserver.yaml
+    printf "    user: synapse\n    password: null\n    database: synapse\n    host: synapse-pg\n" >> ./conf/synapse/$DWEB_DOMAIN.homeserver.yaml
     printf "    port: 5432\n    cp_min: 5\n    cp_max: 10\n" >> ./conf/synapse/$DWEB_DOMAIN.homeserver.yaml
 
     sed -i "s/TEMPLATE/$DWEB_DOMAIN/" ./conf/element/$DWEB_DOMAIN.config.json
@@ -90,7 +90,7 @@ mastodon_config () {
     sed -i "s/VAPID_KEYS=/$VAPID_FRIENDLY_KEYS/" ./conf/mastodon/$DWEB_DOMAIN.env.production
     sed -i 's/\r$//g' ./conf/mastodon/$DWEB_DOMAIN.env.production
     sed -i "s/ALTERNATE_DOMAINS=social./&$DWEB_ONION/" ./conf/mastodon/$DWEB_DOMAIN.env.production
-    sed -i "s/SMTP_SERVER=/&$DWEB_DOMAIN/" ./conf/mastodon/$DWEB_DOMAIN.env.production
+    #sed -i "s/SMTP_SERVER=/&$DWEB_DOMAIN/" ./conf/mastodon/$DWEB_DOMAIN.env.production
     #sed -i "s/REDIS_PASSWORD=/&$REDIS_PW/" ./conf/mastodon/$DWEB_DOMAIN.env.production
 }
 
