@@ -1,5 +1,7 @@
 # dComms
 
+## You probably want the Docker compose version [here](https://github.com/equalitie/dcomms-docker-compose)
+
 Decentralized communications that work with or without the Internet 
 
 # Prerequisites
