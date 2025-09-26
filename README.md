@@ -1,8 +1,8 @@
 # dComms
 
-## You probably want the Docker compose version [here](https://github.com/equalitie/dcomms-docker-compose)
-
 Decentralized communications that work with or without the Internet 
+
+### You probably want the Docker compose version [here](https://github.com/equalitie/dcomms-docker-compose)
 
 # Prerequisites
 * A pre-existing [docker swarm](https://docs.docker.com/engine/swarm/) already setup and configured is necessary for orchestration of this software service stack.
